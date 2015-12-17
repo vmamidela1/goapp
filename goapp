@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# goapp
+#
+# chkconfig: 345 70 30
+# description: GoApp
+# processname: goapp
+
+# Source function library.
+. /etc/init.d/functions
+
+# Declare variables for GoApp Hello Server
+RETVAL=0
+prog="goapp"
+DAEMON="goapp"
+DAEMONOPTS=''
+GO_HOME='/usr/local/bin/go'
+DAEMON_PATH="${GO_HOME}/bin"
+LOCKFILE=/var/lock/subsys/$prog
+PIDFILE=/var/run/$prog.pid
+
+start() {
+  printf "%-50s" "Starting $NAME..."
+ 
+  if [ -s ${PIDFILE} ]; then 
+    ps -p `cat ${PIDFILE}` >/dev/null
+    if [ $? -eq 0 ]; then
+      echo -n "Already Running!" && warning
+    else
+      rm -rf ${PIDFILE}
+      rm -rf ${LOCKFILE}
+      PID=`${DAEMON_PATH}/${DAEMON} > /dev/null 2>&1 & echo $!`
+      if [ -z $PID ]; then
+        printf "%s\n" "Fail"
+        RETVAL=1
+      else
+        RETVAL=0
+        echo $PID > $PIDFILE 
+        printf "${DAEMON} %s\n" "  [ OK ]"
+      fi
+      return $RETVAL
+    fi
+  else
+    PID=`${DAEMON_PATH}/${DAEMON} > /dev/null 2>&1 & echo $!`
+    if [ -z $PID ]; then
+      printf "%s\n" "Fail"
+      RETVAL=1
+    else
+      RETVAL=0
+      echo $PID > $PIDFILE 
+      printf "${DAEMON} %s\n" "  [ OK ]"
+    fi
+    return $RETVAL
+  fi
+
+}
+
+stop() {
+  echo -n "Stopping $prog: "
+  killproc $DAEMON
+  RETVAL=$?
+  [ $RETVAL -eq 0 ] && rm -f $LOCKFILE
+  echo
+  return $RETVAL
+}
+
+
+go_status() {
+  status -p $PIDFILE $DAEMON
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        go_status
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $RETVAL
